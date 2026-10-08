@@ -1,0 +1,20 @@
+{
+  "api_base_url": "https://sayitvid.com",
+  "api_key": "",
+  "default_accent": "us",
+  "download_audio": true,
+  "overwrite_existing": false,
+  "field_mappings": {
+    "source_word": "Front",
+    "target_audio": "Audio",
+    "target_ipa": "IPA",
+    "target_syllables": "Syllables",
+    "target_definition": "Definition",
+    "target_sentence": "Sentence",
+    "target_video": "Video",
+    "target_cefr": "CEFR"
+  },
+  "tag_cefr": true,
+  "video_embed_width": 560,
+  "video_embed_height": 315
+}

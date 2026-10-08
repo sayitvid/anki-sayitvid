@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+.idea/
+.vscode/
+*.ankiaddon
+user_files/
+.mypy_cache/
+.pytest_cache/
