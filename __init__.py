@@ -1,6 +1,7 @@
 """
 SayItVid Anki Add-on
 Main add-on entry point connecting SayItVid to Anki Desktop.
+Embeds authentic video clips and pronunciation widgets into cards.
 """
 
 from __future__ import annotations
@@ -35,22 +36,14 @@ def get_addon_config() -> dict:
         if isinstance(cfg, dict):
             return cfg
     return {
-        "api_base_url": "https://sayitvid.com",
-        "api_key": "",
+        "base_url": "https://sayitvid.com",
         "default_accent": "us",
-        "download_audio": True,
+        "theme": "auto",
         "overwrite_existing": False,
         "field_mappings": {
             "source_word": "Front",
-            "target_audio": "Audio",
-            "target_ipa": "IPA",
-            "target_syllables": "Syllables",
-            "target_definition": "Definition",
-            "target_sentence": "Sentence",
             "target_video": "Video",
-            "target_cefr": "CEFR",
         },
-        "tag_cefr": True,
     }
 
 
@@ -68,7 +61,7 @@ def on_enrich_browser_selection(browser: Browser):
 
 def setup_browser_menu(browser: Browser):
     """Add SayItVid action to Anki's Browser Edit menu."""
-    action = QAction("SayItVid: Enrich Selected Notes...", browser)
+    action = QAction("SayItVid: Embed Widgets in Selected Notes...", browser)
     action.setShortcut(QKeySequence("Ctrl+Shift+S"))
     action.triggered.connect(lambda: on_enrich_browser_selection(browser))
 
@@ -79,7 +72,7 @@ def setup_browser_menu(browser: Browser):
 
 
 def on_editor_quick_enrich(editor: Editor):
-    """Enrich the current note directly in the Add/Edit Note dialog."""
+    """Embed the SayItVid widget directly in the current note."""
     note = editor.note
     if not note:
         return
@@ -87,20 +80,14 @@ def on_editor_quick_enrich(editor: Editor):
     config = get_addon_config()
     source_field = config.get("field_mappings", {}).get("source_word", "Front")
 
-    def media_writer_wrapper(filename: str, data: bytes) -> str:
-        if mw and mw.col and mw.col.media:
-            return mw.col.media.write_data(filename, data)
-        return filename
-
-    enricher = NoteEnricher(config=config, media_writer=media_writer_wrapper)
+    enricher = NoteEnricher(config=config)
     result = enricher.enrich_single_note(
         note=note,
         source_field=source_field,
         target_mappings=config.get("field_mappings", {}),
         accent=config.get("default_accent", "us"),
+        theme=config.get("theme", "auto"),
         overwrite=config.get("overwrite_existing", False),
-        download_audio=config.get("download_audio", True),
-        tag_cefr=config.get("tag_cefr", True),
     )
 
     parent_win = getattr(editor, "parentWindow", None)
@@ -129,14 +116,14 @@ def on_editor_quick_enrich(editor: Editor):
         if updated:
             fields_str = ", ".join(updated)
             try:
-                tooltip(f"SayItVid enriched '{word}' ({fields_str})", parent=parent_win)
+                tooltip(f"SayItVid embedded widget for '{word}' ({fields_str})", parent=parent_win)
             except Exception:
                 if hasattr(mw, "statusBar"):
-                    mw.statusBar().showMessage(f"SayItVid enriched '{word}': {fields_str}", 4000)
+                    mw.statusBar().showMessage(f"SayItVid embedded widget for '{word}': {fields_str}", 4000)
         elif skipped:
             fields_str = ", ".join(skipped)
             showInfo(
-                f"SayItVid found data for '{word}', but field(s) '{fields_str}' already have content.\n\n"
+                f"SayItVid widget ready for '{word}', but field(s) '{fields_str}' already have content.\n\n"
                 f"Enable 'Overwrite existing' in SayItVid preferences or use the Note Browser to overwrite.",
                 parent=parent_win
             )
@@ -144,7 +131,7 @@ def on_editor_quick_enrich(editor: Editor):
             note_keys = list(note.keys()) if hasattr(note, "keys") else []
             model_name = note.model().get("name", "") if hasattr(note, "model") else "Unknown"
             showWarning(
-                f"SayItVid found data for '{word}', but could not map to fields on note type '{model_name}'.\n"
+                f"SayItVid widget ready for '{word}', but could not map to fields on note type '{model_name}'.\n"
                 f"Available fields on this card: {', '.join(note_keys)}\n\n"
                 f"Check field mappings in Tools → Add-ons → SayItVid → Config.",
                 parent=parent_win
@@ -166,7 +153,7 @@ def setup_editor_button(buttons: List[str], editor: Editor) -> List[str]:
         func=lambda ed: on_editor_quick_enrich(ed),
         label="SayItVid",
         id="sayitvid_button",
-        tip="Enrich with SayItVid (Audio, IPA, Syllables, Video) [F8]",
+        tip="Embed SayItVid Video Widget [F8]",
         keys="F8",
     )
 
